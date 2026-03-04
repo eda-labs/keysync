@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "keysync"
+version = "0.1.0"
+description = "Textual TUI to add SSH public keys to EDA NodeUser resources"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "kubernetes>=35.0.0",
+    "textual>=0.74.0",
+]
+
+[project.scripts]
+keysync = "keysync.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/keysync"]
+

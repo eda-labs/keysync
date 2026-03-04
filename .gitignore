@@ -1,0 +1,53 @@
+# Bytecode / caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.egg/
+
+# Python tooling caches
+.pytest_cache/
+.pyre/
+.pytype/
+.mypy_cache/
+.ruff_cache/
+.nox/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.uv/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# uv / pip / poetry helpers
+.python-version
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS / filesystem cruft
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# Logs / runtime artifacts
+*.log
+
+# Misc generated files
+tmp/
+*.tmp
