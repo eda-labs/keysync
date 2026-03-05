@@ -19,10 +19,10 @@ def _canonical_public_key(value: str) -> str:
     return f"{parts[0]} {parts[1]}"
 
 
-def _safe(value: str | None, fallback: str = "-") -> str:
+def _safe(value: object | None, fallback: str = "-") -> str:
     if value is None:
         return fallback
-    stripped = value.strip()
+    stripped = str(value).strip()
     return stripped if stripped else fallback
 
 
@@ -94,39 +94,51 @@ def _build_kubeconfig_info(
 def list_nodeusers(
     custom_api: client.CustomObjectsApi, namespace: str | None
 ) -> list[NodeUserResource]:
-    if namespace:
-        payload = custom_api.list_namespaced_custom_object(
-            group=EDA_NODEUSER_GROUP,
-            version=EDA_NODEUSER_VERSION,
-            namespace=namespace,
-            plural=EDA_NODEUSER_PLURAL,
-        )
-    else:
-        payload = custom_api.list_cluster_custom_object(
-            group=EDA_NODEUSER_GROUP,
-            version=EDA_NODEUSER_VERSION,
-            plural=EDA_NODEUSER_PLURAL,
-        )
+    normalized_namespace = _safe(namespace, fallback="")
+    scope = normalized_namespace or None
 
     results: list[NodeUserResource] = []
-    for item in payload.get("items", []):
-        metadata = item.get("metadata", {}) or {}
-        spec = item.get("spec", {}) or {}
-        keys = spec.get("sshPublicKeys", []) or []
-        key_list = [str(key) for key in keys if str(key).strip()]
+    continue_token: str | None = None
+    while True:
+        params: dict[str, object] = {
+            "group": EDA_NODEUSER_GROUP,
+            "version": EDA_NODEUSER_VERSION,
+            "plural": EDA_NODEUSER_PLURAL,
+        }
+        if continue_token:
+            params["_continue"] = continue_token
 
-        name = str(metadata.get("name", ""))
-        namespace_name = str(metadata.get("namespace", "default"))
-        username = str(spec.get("username") or name)
-
-        results.append(
-            NodeUserResource(
-                namespace=namespace_name,
-                name=name,
-                username=username,
-                ssh_public_keys=key_list,
+        if scope:
+            payload = custom_api.list_namespaced_custom_object(
+                namespace=scope,
+                **params,
             )
-        )
+        else:
+            payload = custom_api.list_cluster_custom_object(**params)
+
+        for item in payload.get("items", []):
+            metadata = item.get("metadata", {}) or {}
+            spec = item.get("spec", {}) or {}
+            keys = spec.get("sshPublicKeys", []) or []
+            key_list = [str(key) for key in keys if str(key).strip()]
+
+            name = _safe(metadata.get("name"), "")
+            namespace_name = _safe(metadata.get("namespace"), "default")
+            username = _safe(spec.get("username"), name)
+
+            results.append(
+                NodeUserResource(
+                    namespace=namespace_name,
+                    name=name,
+                    username=username,
+                    ssh_public_keys=key_list,
+                )
+            )
+
+        metadata_block = payload.get("metadata", {}) or {}
+        continue_token = _safe(metadata_block.get("continue"), "")
+        if not continue_token:
+            break
 
     return sorted(results, key=lambda item: (item.namespace, item.name))
 
